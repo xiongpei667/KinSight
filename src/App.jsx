@@ -5,6 +5,7 @@ import RegisterForm from './components/RegisterForm';
 import RecognizedAlert from './components/RecognizedAlert';
 import FamilyTree from './components/FamilyTree';
 import PersonDetailModal from "./components/PersonDetailModal";
+import PeoplePanel from "./components/PeoplePanel";
 import TimelinePanel from './components/TimelinePanel';
 import useFaceRecognition from './hooks/useFaceRecognition';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -217,6 +218,7 @@ export default function App() {
       {tab === 'people' && (
         <PeoplePanel
           visitors={visitors}
+          visits={visits}
           onEdit={setEditPerson}
           onRemove={removeVisitor}
           updateVisitor={updateVisitor}
@@ -254,8 +256,8 @@ export default function App() {
 
 /* ───── Person Detail Modal (lazy import wrapper) ───── */
 
-/* ───── People Panel ───── */
-function PeoplePanel({ visitors, onEdit, onRemove, updateVisitor, editPerson, onDetail, t }) {
+/* PeoplePanel extracted to components/PeoplePanel.jsx */
+function _PeoplePanel({ visitors, onEdit, onRemove, updateVisitor, editPerson, onDetail, t }) {
   const [search, setSearch] = useState('');
 
   const filtered = visitors.filter((v) =>
@@ -294,7 +296,8 @@ function PeoplePanel({ visitors, onEdit, onRemove, updateVisitor, editPerson, on
   );
 }
 
-function EditModal({ person, onSave, onClose, t }) {
+/* EditModal extracted */
+function _EditModal({ person, onSave, onClose, t }) {
   const [name, setName] = useState(person.name);
   const [relation, setRelation] = useState(person.relation);
   const [note, setNote] = useState(person.note || '');

@@ -611,3 +611,61 @@ input, select {
   object-fit: cover;
   margin-left: auto;
 }
+
+/* ───── People Panel Enhanced ───── */
+.people-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.people-toolbar .search-input {
+  flex: 1;
+  margin-bottom: 0;
+}
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.view-toggle .ghost { padding: 8px; }
+.view-toggle .ghost.active { background: #2563eb; color: #fff; }
+.person-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.people-list {
+  display: grid;
+  gap: 6px;
+}
+.people-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+.people-list-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.people-list-info { flex: 1; min-width: 0; }
+.people-list-info strong { display: block; font-size: 14px; }
+.people-list-info span { color: #64748b; font-size: 12px; }
+.people-list-stats {
+  text-align: center;
+  min-width: 40px;
+}
+.people-list-count {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1d4ed8;
+}
+.people-list-stats small { color: #94a3b8; font-size: 10px; }
