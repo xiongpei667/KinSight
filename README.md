@@ -1,33 +1,163 @@
-# 亲戚图谱门口识别工具
+# KinSight 🏠👋
 
-这是一个本地浏览器 MVP，用电脑摄像头模拟门口摄像头：
+> **Face recognition for family & visitors — all in your browser, no data uploaded.**
 
-- 检测到陌生人脸后，显示截图并让你手动标记姓名、亲属关系和备注。
-- 再次识别到已标记人脸时，在页面中显示“谁来了”，并尝试发送浏览器通知。
-- 已标记的人会按“父系亲属 / 母系亲属 / 核心家庭 / 其他亲戚”自动展示成树状分支。
-- 数据默认保存在当前浏览器的 `localStorage`，不会上传到服务器。
+KinSight is a web app that uses your camera to recognize known faces (family, friends, frequent visitors) and automatically logs their visits. When a stranger appears, you can register them with name and relationship, and they'll be recognized next time.
 
-## 运行
+All data stays in `localStorage` — nothing is sent to any server.
+
+![KinSight screenshot](https://img.shields.io/badge/status-demo-blue)
+![React](https://img.shields.io/badge/React-18-61DAFB)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🎥 **Real-time face detection** | Camera feed with face bounding boxes |
+| 🧑 **Known face recognition** | Auto-identifies registered family members |
+| 🔔 **Browser notifications** | Alerts when a known person arrives |
+| 📝 **Stranger registration** | Capture & label unknown faces with relationship |
+| 📋 **Visit timeline** | Chronological log of all visits (known & unknown) |
+| 👥 **People management** | Search, edit, delete registered members |
+| 🌳 **Family tree** | View by generation (ancestors → parents → self → children) or category (paternal/maternal/immediate) |
+| 📊 **Statistics** | Visit counts, hourly distribution, weekly activity, visitor rankings |
+| 🌐 **i18n** | Chinese & English UI |
+| 💾 **Data portability** | JSON export/import for backup & restore |
+
+---
+
+## 🚀 Quick Start
 
 ```bash
+# Install
 npm install
+
+# Run dev server (opens at http://localhost:5173)
 npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-然后打开终端里显示的本地地址，点击“启动摄像头”，允许浏览器摄像头权限。
+**Prerequisites:**
+- A camera (built-in laptop cam, USB webcam)
+- Internet connection **on first load** (face recognition models are fetched from CDN)
+- `localhost` HTTPS-like environment (Vite dev server works out of the box)
 
-> 摄像头和浏览器通知通常要求 `localhost` 或 HTTPS 环境。
+---
 
-## 当前原型边界
+## 📖 How to Use
 
-- 人脸模型通过 CDN 加载，首次打开需要联网。
-- 识别阈值在 `src/main.jsx` 的 `MATCH_THRESHOLD`，环境光线不好时可能需要调整。
-- 浏览器本地存储容量有限，适合原型验证；正式门口设备建议改成后端数据库。
-- 当前树状图按关系类别分组，不是严格血缘层级；后续可以增加“父节点/配偶/子女”字段来生成真正家谱。
+### 1. Start Camera
+Click **"Start Camera"** and allow camera access. Face models load automatically on page load.
 
-## 后续建议
+### 2. Register a Stranger
+When an unknown face is detected, it appears in the right panel. Fill in:
+- **Name**: e.g. "Uncle John"
+- **Relationship**: Select from Chinese kinship terms (大伯, 表哥, etc.)
+- **Notes**: Optional description
 
-1. 后端化：用 SQLite/PostgreSQL 保存人脸向量、截图和亲属关系。
-2. 硬件化：用树莓派/小主机 + USB 摄像头或 RTSP 门口摄像头。
-3. 通知化：接入微信/Telegram/短信/Web Push，替代浏览器通知。
-4. 隐私化：增加本地加密、访问密码、自动清理陌生人记录。
+Click **"Save to Family"** — they'll be recognized next time.
+
+### 3. Monitor
+When a registered person is detected, the app shows:
+- Their name & relationship
+- Recognition confidence
+- A browser notification (allow when prompted)
+
+### 4. Explore Data
+- **Timeline** tab: Chronological visit history, filterable by recognized/stranger
+- **People** tab: All registered members with search & edit
+- **Statistics** tab: Visit counts, charts, rankings
+- **Settings** tab: Import/export data, clear all
+
+### 5. Family Tree
+The family tree auto-organizes members by generation:
+```
+        祖辈 (Grandparents)
+        父辈 (Parents/Siblings)
+        同辈 (You/Cousins)
+        子辈 (Children/Nieces)
+```
+
+Use zoom buttons to adjust view, click a person to see their visit history.
+
+---
+
+## 🏗️ Project Structure
+
+```
+src/
+├── main.jsx                     # Entry point
+├── App.jsx                      # App shell + tab routing
+├── App.css                      # Global styles
+├── components/
+│   ├── CameraView.jsx           # Video preview + detection overlay
+│   ├── FamilyTree.jsx           # Generation & category tree
+│   ├── PeoplePanel.jsx          # People management (card/list view)
+│   ├── PersonDetailModal.jsx    # Person visit history detail
+│   ├── RecognizedAlert.jsx      # Recognized person banner
+│   ├── RegisterForm.jsx         # Stranger registration form
+│   ├── StatsPanel.jsx           # Statistics dashboard + charts
+│   └── TimelinePanel.jsx        # Visit history timeline
+├── hooks/
+│   ├── useFaceRecognition.js    # Face API loading + camera + scan loop
+│   └── useLocalStorage.js       # localStorage persistence
+├── utils/
+│   ├── constants.js             # Config constants (thresholds, URLs)
+│   ├── i18n.js                  # Chinese/English translations
+│   ├── relations.js             # Kinship categories & generation mapping
+│   └── storage.js               # Data read/write + helpers
+```
+
+---
+
+## 🧠 Technical Details
+
+### Face Recognition
+- **Library**: [face-api.js](https://github.com/vladmandic/face-api) by @vladmandic
+- **Model**: TinyFaceDetector + FaceLandmark68 + FaceRecognitionNet (loaded from CDN)
+- **Matching**: Euclidean distance between 128-dimensional face descriptors
+- **Threshold**: `MATCH_THRESHOLD = 0.48` (adjustable in `src/utils/constants.js`)
+
+### Data Storage
+- All data is stored in `localStorage` under key `kinsight-data-v2`
+- Format: `{ visitors: [...], visits: [...] }`
+- **Visitors**: registered people (name, relation, note, image, face descriptor)
+- **Visits**: recognition events (personId, timestamp, snapshot, type)
+
+### Browser Compatibility
+- Requires `getUserMedia` (camera) — Chrome, Firefox, Safari, Edge
+- Requires `Notification` API — all modern browsers
+- Requires `localStorage` — all modern browsers
+
+---
+
+## ⚠️ Known Limitations
+
+- **CDN model dependency**: Face models load from jsdelivr CDN on first visit. Offline use requires self-hosting the models.
+- **localStorage quota**: ~5-10 MB limit. Fine for dozens of faces & thousands of visits.
+- **Single user**: No multi-user or account system.
+- **No backend**: This is a purely client-side demo. For a production doorbell system, consider a native app with persistent camera access.
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## 🙌 Credits
+
+- [face-api.js](https://github.com/vladmandic/face-api) — JavaScript face recognition
+- [Vite](https://vitejs.dev) — Build tool
+- [React](https://react.dev) — UI framework
+- [Lucide](https://lucide.dev) — Icons
