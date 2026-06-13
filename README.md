@@ -149,15 +149,75 @@ src/
 
 ---
 
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
-
----
-
 ## 🙌 Credits
 
 - [face-api.js](https://github.com/vladmandic/face-api) — JavaScript face recognition
 - [Vite](https://vitejs.dev) — Build tool
 - [React](https://react.dev) — UI framework
 - [Lucide](https://lucide.dev) — Icons
+
+---
+
+## 🗺️ Roadmap — Full Product Vision
+
+This demo is the browser-based proof of concept. The complete product vision extends far beyond:
+
+### Phase A — Native Desktop (macOS)
+| Feature | Status |
+|---------|--------|
+| SwiftUI native app (macOS 14+) | 📝 Planned |
+| Apple Vision framework (on-device, no CDN) | 📝 Planned |
+| AVFoundation RTSP camera streaming | 📝 Planned |
+| 7×24 background operation in menu bar | 📝 Planned |
+| Support Hikvision / Dahua / TP-Link IP cameras | 📝 Planned |
+| Custom RTSP URL templates for major brands | 📝 Planned |
+| Auto-reconnect on camera disconnection | 📝 Planned |
+
+### Phase B — iOS Companion
+| Feature | Status |
+|---------|--------|
+| SwiftUI iOS/iPadOS app | 📝 Planned |
+| iCloud sync via CoreData + CloudKit | 📝 Planned |
+| Push notifications for visitor arrival | 📝 Planned |
+| View visit history & snapshots on phone | 📝 Planned |
+| Manage family members from any device | 📝 Planned |
+
+### Phase C — Production Polish
+| Feature | Status |
+|---------|--------|
+| Data encryption at rest | 📝 Planned |
+| Privacy manifest for App Store | 📝 Planned |
+| App Store distribution | 📝 Planned |
+| TestFlight beta testing | 📝 Planned |
+| Chinese & English localization | ✅ Done (web) |
+| macOS auto-launch on boot | 📝 Planned |
+
+### Phase D — Advanced Features
+| Feature | Status |
+|---------|--------|
+| ONVIF camera auto-discovery (LAN scan) | 📝 Planned |
+| Multi-camera simultaneous monitoring | 📝 Planned |
+| Deep family tree (parent/child/spouse links) | 📝 Planned |
+| Analytics dashboard (visit patterns, trends) | 📝 Planned |
+| WeChat / Telegram / email push notifications | 📝 Planned |
+| macOS Widget (recent visitors) | 📝 Planned |
+| Apple Watch notification | 📝 Planned |
+| Offline face models (self-hosted, no CDN) | 📝 Planned |
+
+> 💡 **Interested in the native Apple version?** The SwiftUI + Vision architecture is designed and ready — this web demo validates the concept first.
+
+---
+
+## 🤝 Contributing
+
+This is an open-source demo project. Feel free to:
+- ⭐ Star the repo
+- 🐛 Report issues
+- 💡 Suggest features
+- 🔀 Fork and experiment
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
