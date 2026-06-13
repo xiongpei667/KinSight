@@ -4,9 +4,11 @@ import CameraView from './components/CameraView';
 import RegisterForm from './components/RegisterForm';
 import RecognizedAlert from './components/RecognizedAlert';
 import FamilyTree from './components/FamilyTree';
+import PersonDetailModal from "./components/PersonDetailModal";
+import TimelinePanel from './components/TimelinePanel';
 import useFaceRecognition from './hooks/useFaceRecognition';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { makeId, formatTime } from './utils/storage';
+import { makeId } from './utils/storage';
 import { createI18n } from './utils/i18n';
 import './App.css';
 
@@ -20,6 +22,7 @@ export default function App() {
   const [unknownFace, setUnknownFace] = useState(null);
   const [notifGranted, setNotifGranted] = useState(false);
   const [editPerson, setEditPerson] = useState(null);
+  const [detailPerson, setDetailPerson] = useState(null);
 
   const t = createI18n(lang).t;
   const visitors = data.visitors;
@@ -32,9 +35,20 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [recognized]);
 
+  function captureFrame() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return null;
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth;
+    c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    return c.toDataURL('image/jpeg', 0.6);
+  }
+
   const handleRecognized = useCallback((visitor, distance, seenAt) => {
+    const snapshot = captureFrame();
     setRecognized({ ...visitor, _distance: distance, _seenAt: seenAt });
-    addVisit(visitor.id, 'recognized');
+    addVisit(visitor.id, 'recognized', snapshot);
   }, []);
 
   const handleUnknownFace = useCallback((face) => {
@@ -106,7 +120,7 @@ export default function App() {
       reader.onload = (ev) => {
         try {
           const imported = JSON.parse(ev.target.result);
-          if (!imported.visitors || !imported.visits) throw new Error('Invalid format');
+          if (!imported.visitors || !imported.visits) throw new Error('Invalid');
           updateData(imported);
           alert('Import successful!');
         } catch {
@@ -141,23 +155,20 @@ export default function App() {
           </button>
           {!notifGranted && 'Notification' in window && Notification.permission !== 'denied' && (
             <button className="ghost" onClick={requestNotification}>
-              <Bell size={16} />Enable Notifications
+              <Bell size={16} />Notifications
             </button>
           )}
         </div>
       </header>
 
-      {/* Error */}
       {error && <div className="alert"><ShieldAlert size={18} />{error}</div>}
 
-      {/* Model loading progress */}
       {modelProgress && (
         <div className="status-line model-progress">
           <span>{t('modelLoading')} <strong>{modelProgress}</strong></span>
         </div>
       )}
 
-      {/* Recognized alert */}
       {recognized && <RecognizedAlert person={recognized} t={t} />}
 
       {/* Tab bar */}
@@ -173,12 +184,12 @@ export default function App() {
             {tKey === 'people' && <Users size={16} />}
             {tKey === 'stats' && <Activity size={16} />}
             {tKey === 'settings' && <Settings size={16} />}
-            {tKey === 'monitor' ? '监控' : tKey === 'timeline' ? t('timeline') : tKey === 'people' ? t('people') : tKey === 'stats' ? t('statistics') : t('settings')}
+            {tKey === 'monitor' ? 'Monitor' : tKey === 'timeline' ? t('timeline') : tKey === 'people' ? t('people') : tKey === 'stats' ? t('statistics') : t('settings')}
           </button>
         ))}
       </nav>
 
-      {/* Monitor tab */}
+      {/* Tabs */}
       {tab === 'monitor' && (
         <div className="grid">
           <CameraView
@@ -195,16 +206,28 @@ export default function App() {
         </div>
       )}
 
-      {/* Timeline tab */}
-      {tab === 'timeline' && <TimelinePanel visits={visits} visitors={visitors} t={t} />}
+      {tab === 'timeline' && (
+        <TimelinePanel
+          visits={visits}
+          visitors={visitors}
+          t={t}
+        />
+      )}
 
-      {/* People tab */}
-      {tab === 'people' && <PeoplePanel visitors={visitors} onEdit={setEditPerson} onRemove={removeVisitor} updateVisitor={updateVisitor} editPerson={editPerson} t={t} />}
+      {tab === 'people' && (
+        <PeoplePanel
+          visitors={visitors}
+          onEdit={setEditPerson}
+          onRemove={removeVisitor}
+          updateVisitor={updateVisitor}
+          editPerson={editPerson}
+          onDetail={setDetailPerson}
+          t={t}
+        />
+      )}
 
-      {/* Stats tab */}
       {tab === 'stats' && <StatsPanel visits={visits} visitors={visitors} t={t} />}
 
-      {/* Settings tab */}
       {tab === 'settings' && (
         <section className="card settings-card">
           <div className="section-title"><Settings size={18} /><span>{t('settings')}</span></div>
@@ -214,70 +237,25 @@ export default function App() {
             <button className="ghost danger" onClick={clearData}><span>{t('clearData')}</span></button>
           </div>
           <p className="settings-hint">
-            {t('settings')} — {visitors.length} persons, {visits.length} visits
+            {visitors.length} persons · {visits.length} visits · {captureFrame() ? 'camera' : 'no camera'}
           </p>
         </section>
       )}
 
-      {/* FamilyTree always visible */}
+      {/* Person detail modal */}
+      {detailPerson && (
+        <PersonDetailModal person={detailPerson} visits={visits} onClose={() => setDetailPerson(null)} t={t} />
+      )}
+
       <FamilyTree visitors={visitors} onRemove={removeVisitor} t={t} />
     </main>
   );
 }
 
-/* ───── Timeline Panel ───── */
-function TimelinePanel({ visits, visitors, t }) {
-  const [filter, setFilter] = useState('all'); // all | recognized | stranger
-
-  const getPerson = (personId) => visitors.find((v) => v.id === personId);
-
-  const filtered = visits.filter((v) => {
-    if (filter === 'recognized') return v.type === 'recognized' || v.type === 'registered';
-    if (filter === 'stranger') return v.type === 'stranger';
-    return true;
-  });
-
-  return (
-    <section className="card timeline-card">
-      <div className="section-title"><History size={18} /><span>{t('timeline')}</span></div>
-      <div className="filter-bar">
-        {['all', 'recognized', 'stranger'].map((f) => (
-          <button key={f} className={`ghost ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-            {f === 'all' ? t('allVisits') : f === 'recognized' ? t('recognizedLabel') : t('strangerLabel')}
-          </button>
-        ))}
-      </div>
-      {filtered.length === 0 ? (
-        <div className="empty">{t('noVisits')}</div>
-      ) : (
-        <div className="timeline-list">
-          {filtered.slice(0, 100).map((visit) => {
-            const person = getPerson(visit.personId);
-            return (
-              <div className="timeline-item" key={visit.id}>
-                {person ? (
-                  <img className="timeline-avatar" src={person.image} alt={person.name} />
-                ) : (
-                  <div className="timeline-avatar timeline-avatar-stranger">?</div>
-                )}
-                <div className="timeline-info">
-                  <strong>{person ? `${person.relation} ${person.name}` : t('unknown')}</strong>
-                  <span>{formatTime(visit.timestamp)}</span>
-                </div>
-                {visit.snapshotImage && (
-                  <img className="timeline-snapshot" src={visit.snapshotImage} alt="snapshot" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-}
+/* ───── Person Detail Modal (lazy import wrapper) ───── */
 
 /* ───── People Panel ───── */
-function PeoplePanel({ visitors, onEdit, onRemove, updateVisitor, editPerson, t }) {
+function PeoplePanel({ visitors, onEdit, onRemove, updateVisitor, editPerson, onDetail, t }) {
   const [search, setSearch] = useState('');
 
   const filtered = visitors.filter((v) =>
@@ -296,7 +274,7 @@ function PeoplePanel({ visitors, onEdit, onRemove, updateVisitor, editPerson, t 
       <div className="people-grid">
         {filtered.map((person) => (
           <div className="person-manage-card" key={person.id}>
-            <img src={person.image} alt={person.name} />
+            <img src={person.image} alt={person.name} onClick={() => onDetail(person)} style={{ cursor: 'pointer' }} />
             <strong>{person.name}</strong>
             <small>{person.relation}</small>
             {person.note && <span>{person.note}</span>}
@@ -309,7 +287,6 @@ function PeoplePanel({ visitors, onEdit, onRemove, updateVisitor, editPerson, t 
       </div>
       {filtered.length === 0 && <div className="empty">{t('noVisitors')}</div>}
 
-      {/* Edit modal */}
       {editPerson && (
         <EditModal person={editPerson} onSave={updateVisitor} onClose={() => onEdit(null)} t={t} />
       )}
@@ -358,7 +335,6 @@ function StatsPanel({ visits, visitors, t }) {
   const totalVisits = visits.length;
   const todayVisits = visits.filter((v) => v.timestamp >= todayTs).length;
 
-  // Count per person
   const visitCounts = {};
   for (const v of visits) {
     const key = v.personId || '__stranger__';

@@ -513,3 +513,101 @@ input, select {
   .app-shell { width: calc(100vw - 16px); padding-top: 14px; }
   .people-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 }
+
+/* ───── Timeline Enhanced ───── */
+.timeline-date-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 12px;
+  margin: 8px 0 4px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.9);
+  font-weight: 700;
+  font-size: 13px;
+  color: #475569;
+  backdrop-filter: blur(8px);
+}
+.filter-btn { position: relative; }
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.08);
+  font-size: 11px;
+  font-weight: 700;
+}
+.filter-btn.active .filter-count { background: rgba(255,255,255,0.3); color: #fff; }
+.timeline-type-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.stranger-tag { background: #fee2e2; color: #991b1b; }
+
+/* ───── Person Detail Modal ───── */
+.modal-wide {
+  width: min(520px, calc(100vw - 32px));
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.detail-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.detail-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.detail-header h3 { margin: 0; }
+.detail-note { color: #64748b; margin: 4px 0 0; font-size: 14px; }
+.detail-meta { color: #94a3b8; margin: 4px 0 0; font-size: 12px; }
+.detail-day-group { margin-bottom: 16px; }
+.detail-day-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+.detail-visit-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.detail-visit-time {
+  font-size: 13px;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  min-width: 70px;
+}
+.detail-visit-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.detail-visit-snap {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  margin-left: auto;
+}
