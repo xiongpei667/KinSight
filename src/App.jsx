@@ -5,6 +5,7 @@ import RegisterForm from './components/RegisterForm';
 import RecognizedAlert from './components/RecognizedAlert';
 import FamilyTree from './components/FamilyTree';
 import PersonDetailModal from "./components/PersonDetailModal";
+import StatsPanel from "./components/StatsPanel";
 import PeoplePanel from "./components/PeoplePanel";
 import TimelinePanel from './components/TimelinePanel';
 import useFaceRecognition from './hooks/useFaceRecognition';
@@ -249,7 +250,7 @@ export default function App() {
         <PersonDetailModal person={detailPerson} visits={visits} onClose={() => setDetailPerson(null)} t={t} />
       )}
 
-      <FamilyTree visitors={visitors} onRemove={removeVisitor} t={t} />
+      <FamilyTree visitors={visitors} onRemove={removeVisitor} onDetail={setDetailPerson} t={t} />
     </main>
   );
 }
@@ -329,54 +330,4 @@ function _EditModal({ person, onSave, onClose, t }) {
   );
 }
 
-/* ───── Stats Panel ───── */
-function StatsPanel({ visits, visitors, t }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTs = today.getTime();
-
-  const totalVisits = visits.length;
-  const todayVisits = visits.filter((v) => v.timestamp >= todayTs).length;
-
-  const visitCounts = {};
-  for (const v of visits) {
-    const key = v.personId || '__stranger__';
-    if (!visitCounts[key]) visitCounts[key] = { count: 0, lastSeen: 0 };
-    visitCounts[key].count += 1;
-    if (v.timestamp > visitCounts[key].lastSeen) visitCounts[key].lastSeen = v.timestamp;
-  }
-
-  const ranking = Object.entries(visitCounts)
-    .sort(([, a], [, b]) => b.count - a.count)
-    .slice(0, 10);
-
-  return (
-    <section className="card stats-card">
-      <div className="section-title"><Activity size={18} /><span>{t('statistics')}</span></div>
-      <div className="stats-grid">
-        <div className="stat-box">
-          <strong>{totalVisits}</strong>
-          <span>{t('totalVisits')}</span>
-        </div>
-        <div className="stat-box">
-          <strong>{todayVisits}</strong>
-          <span>{t('todayVisits')}</span>
-        </div>
-      </div>
-      <h4 className="stats-subtitle">{t('visitRanking')}</h4>
-      <div className="ranking-list">
-        {ranking.map(([personId, stats]) => {
-          const person = visitors.find((v) => v.id === personId);
-          return (
-            <div className="ranking-item" key={personId}>
-              <span className="rank-name">
-                {person ? `${person.relation} ${person.name}` : t('unknown')}
-              </span>
-              <span className="rank-count">{stats.count} {t('count')}</span>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
+/* StatsPanel extracted to components/StatsPanel.jsx */

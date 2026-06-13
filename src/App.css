@@ -669,3 +669,82 @@ input, select {
   color: #1d4ed8;
 }
 .people-list-stats small { color: #94a3b8; font-size: 10px; }
+
+/* ───── Tree Controls ───── */
+.tree-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.tree-controls .ghost { padding: 6px; background: #f1f5f9; }
+.tree-zoom-level {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  min-width: 36px;
+  text-align: center;
+}
+.gen-tree-wrap {
+  overflow-x: auto;
+  transition: transform 0.1s;
+}
+.toggle-category { font-size: 13px; color: #64748b; width: 100%; justify-content: flex-start; }
+
+/* ───── Charts ───── */
+.chart-hourly, .chart-weekly {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100px;
+  padding: 8px 4px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.chart-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+}
+.chart-bar {
+  width: 100%;
+  max-width: 20px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+  min-height: 2px;
+  transition: height 0.3s;
+}
+.chart-bar-week {
+  max-width: 32px;
+  background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+}
+.chart-label {
+  font-size: 9px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.rank-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  margin: 0 10px;
+  overflow: hidden;
+}
+.rank-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  transition: width 0.3s;
+}
+
+/* ───── Stats Grid (4 columns) ───── */
+.stats-grid { grid-template-columns: 1fr 1fr; }
+@media (min-width: 640px) {
+  .stats-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}

@@ -1,8 +1,14 @@
-import { GitBranch, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { GitBranch, Trash2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { groupVisitors, groupByGeneration, generationLabels } from '../utils/relations';
 import { formatTime } from '../utils/storage';
 
-export default function FamilyTree({ visitors, onRemove, t }) {
+export default function FamilyTree({ visitors, onRemove, onDetail, t }) {
+  const [zoom, setZoom] = useState(1);
+  const [showCategory, setShowCategory] = useState(false);
+
+  const byGeneration = groupByGeneration(visitors);
+
   if (!visitors.length) {
     return (
       <section className="card tree-card">
@@ -12,44 +18,70 @@ export default function FamilyTree({ visitors, onRemove, t }) {
     );
   }
 
-  const byGeneration = groupByGeneration(visitors);
-
   return (
     <section className="card tree-card">
-      <div className="section-title"><GitBranch size={18} /><span>{t('familyTree')}</span></div>
-
-      {/* Generation-based tree */}
-      <div className="gen-tree">
-        <div className="gen-tree-root">{t('myHome')}</div>
-        <div className="gen-tree-body">
-          {byGeneration.map(([gen, people]) => (
-            <div className="gen-row" key={gen}>
-              <div className="gen-label">{generationLabels[gen] || gen}</div>
-              <div className="gen-people">
-                {people.map((person) => (
-                  <article className="gen-card" key={person.id}>
-                    <img src={person.image} alt={person.name} />
-                    <div className="gen-card-info">
-                      <strong>{person.name}</strong>
-                      <small>{person.relation}</small>
-                      {person.note && <span>{person.note}</span>}
-                    </div>
-                    <button className="ghost gen-remove" onClick={() => onRemove(person.id)} title={t('removeBtn')}>
-                      <Trash2 size={14} />
-                    </button>
-                  </article>
-                ))}
-              </div>
-            </div>
-          ))}
+      <div className="section-title">
+        <GitBranch size={18} /><span>{t('familyTree')}</span>
+        <div className="tree-controls">
+          <button className="ghost" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}>
+            <ZoomOut size={14} />
+          </button>
+          <span className="tree-zoom-level">{Math.round(zoom * 100)}%</span>
+          <button className="ghost" onClick={() => setZoom((z) => Math.min(2, z + 0.1))}>
+            <ZoomIn size={14} />
+          </button>
+          <button className="ghost" onClick={() => setZoom(1)}>
+            <RotateCcw size={14} />
+          </button>
         </div>
       </div>
 
-      {/* Category tree (existing) */}
-      <details className="category-tree-details">
-        <summary>{t('core')} / {t('paternal')} / {t('maternal')}</summary>
-        <CategoryTree visitors={visitors} onRemove={onRemove} t={t} />
-      </details>
+      {/* Generation-based tree */}
+      <div className="gen-tree-wrap" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
+        <div className="gen-tree">
+          <div className="gen-tree-root">{t('myHome')}</div>
+          <div className="gen-tree-body">
+            {byGeneration.map(([gen, people], idx) => (
+              <div className="gen-row" key={gen}>
+                <div className="gen-label">{generationLabels[gen] || gen}</div>
+                <div className="gen-people">
+                  {people.map((person) => (
+                    <article
+                      className="gen-card"
+                      key={person.id}
+                      onClick={() => onDetail?.(person)}
+                    >
+                      <img src={person.image} alt={person.name} />
+                      <div className="gen-card-info">
+                        <strong>{person.name}</strong>
+                        <small>{person.relation}</small>
+                        {person.note && <span>{person.note}</span>}
+                      </div>
+                      <button
+                        className="ghost gen-remove"
+                        onClick={(e) => { e.stopPropagation(); onRemove(person.id); }}
+                        title={t('removeBtn')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Toggle category tree */}
+      <button
+        className="ghost toggle-category"
+        onClick={() => setShowCategory(!showCategory)}
+        style={{ marginTop: 14 }}
+      >
+        {showCategory ? '−' : '+'} {t('core')} / {t('paternal')} / {t('maternal')}
+      </button>
+      {showCategory && <CategoryTree visitors={visitors} onRemove={onRemove} t={t} />}
     </section>
   );
 }
