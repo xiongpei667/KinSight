@@ -1,4 +1,9 @@
 {
+  "name": "kinsight",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Face recognition for family & visitors — camera-based kinship mapping tool",
+  "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
