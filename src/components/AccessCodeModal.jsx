@@ -1,6 +1,7 @@
 import { Copy, Share2, RefreshCw, X, ExternalLink, Users } from 'lucide-react';
 import { useState } from 'react';
-import { getLocalIpAddress, REMOTE_STREAM_SERVER_PORT } from '../utils/stream-utils';
+import { getLocalIpAddress } from '../utils/stream-utils';
+import { REMOTE_STREAM_SERVER_PORT } from '../utils/constants';
 
 /**
  * 访问码弹窗
