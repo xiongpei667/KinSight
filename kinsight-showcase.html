@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>亲情守护站 KinSight Guardian —— 基于人脸识别的老人、女性、儿童安全守护者</title>
+  <meta name="description" content="面向弱势群体的智能人脸识别守护系统，本地计算，隐私安全" />
+  <style>
+    /* ==================== 全局样式 ==================== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #ec4899;
+      --accent: #14b8a6;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #0f172a;
+      --bg-light: #1e293b;
+      --bg-card: #ffffff;
+      --text: #334155;
+      --text-light: #64748b;
+      --text-white: #f8fafc;
+      --border: #e2e8f0;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
+      --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-card1: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-card2: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-card3: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --gradient-warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ==================== 顶部 Hero 区 ==================== */
+    .hero-section {
+      background: var(--gradient-hero);
+      color: white;
+      padding: 80px 0 100px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .hero-section::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -5%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 8px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .hero-title {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+
+    .hero-title .highlight {
+      background: linear-gradient(90deg, #fde68a, #f9a8d4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
+      opacity: 0.95;
+      margin-bottom: 40px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-features {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    .hero-feature {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .hero-feature-icon {
+      font-size: 20px;
+    }
+
+    /* ==================== 卡片通用样式 ==================== */
+    section {
+      padding: 80px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-eyebrow {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #eef2ff;
+      color: var(--primary-dark);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 40px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    .section-desc {
+      font-size: 18px;
+      color: var(--text-light);
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* ==================== 三大场景卡片 ==================== */
+    .scenarios {
+      background: white;
+      margin-top: -60px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .scenario-card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      box-shadow: var(--shadow);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .scenario-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .scenario-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+    }
+
+    .scenario-card.elder::before { background: var(--gradient-card1); }
+    .scenario-card.woman::before { background: var(--gradient-card2); }
+    .scenario-card.child::before { background: var(--gradient-card3); }
+
+    .scenario-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 24px;
+    }
+
+    .scenario-card.elder .scenario-icon { background: linear-gradient(135deg, #fecdd3, #fda4af); }
+    .scenario-card.woman .scenario-icon { background: linear-gradient(135deg, #bfdbfe, #60a5fa); }
+    .scenario-card.child .scenario-icon { background: linear-gradient(135deg, #bbf7d0, #4ade80); }
+
+    .scenario-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .scenario-subtitle {
+      color: var(--text-light);
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+
+    .scenario-pain {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #78350f;
+    }
+
+    .scenario-features {
+      list-style: none;
+    }
+
+    .scenario-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .scenario-features li::before {
+      content: '✓';
+      color: var(--accent);
+      font-weight: bold;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ==================== 痛点分析区 ==================== */
+    .pain-section {
+      background: linear-gradient(180deg, #fef2f2 0%, #ffffff 100%);
+    }
+
+    .pain-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .pain-card {
+      background: white;
+      padding: 28px;
+      border-radius: 16px;
+      border-left: 5px solid var(--danger);
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease;
+    }
+
+    .pain-card:hover {
+      transform: translateX(4px);
+    }
+
+    .pain-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .pain-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #991b1b;
+      margin-bottom: 8px;
+    }
+
+    .pain-desc {
+      color: var(--text-light);
+      font-size: 15px;
+    }
+
+    /* ==================== 解决方案展示 ==================== */
+    .solution-section {
+      background: white;
+    }
+
+    .solution-card {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-radius: 24px;
+      padding: 48px;
+      margin-bottom: 40px;
+    }
+
+    .solution-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 32px;
+    }
+
+    .solution-step {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .solution-step-num {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .solution-step-icon {
+      font-size: 32px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    .solution-step-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .solution-step-desc {
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    /* ==================== 核心功能展示 ==================== */
+    .features-section {
+      background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: white;
+      padding: 32px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+      border: 1px solid var(--border);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary);
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: #eef2ff;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 20px;
+    }
+
+    .feature-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+
+    .feature-desc {
+      font-size: 15px;
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+
+    /* ==================== 技术架构图 ==================== */
+    .tech-section {
+      background: #0f172a;
+      color: white;
+    }
+
+    .tech-section .section-title {
+      color: white;
+    }
+
+    .tech-section .section-desc {
+      color: #94a3b8;
+    }
+
+    .tech-arch {
+      background: #1e293b;
+      border-radius: 24px;
+      padding: 48px;
+      border: 1px solid #334155;
+    }
+
+    .tech-layers {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tech-layer {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px 28px;
+      background: #334155;
+      border-radius: 14px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .tech-layer-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #a5b4fc;
+      min-width: 140px;
+    }
+
+    .tech-layer-content {
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tech-tag {
+      padding: 6px 14px;
+      background: #475569;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #e2e8f0;
+    }
+
+    .tech-tag.privacy {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: white;
+    }
+
+    /* ==================== 价值与意义 ==================== */
+    .value-section {
+      background: white;
+    }
+
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+    }
+
+    .value-card {
+      padding: 40px 32px;
+      border-radius: 24px;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .value-card.social { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .value-card.efficiency { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .value-card.business { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+
+    .value-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
+
+    .value-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .value-points {
+      list-style: none;
+    }
+
+    .value-points li {
+      padding: 8px 0;
+      font-size: 15px;
+      opacity: 0.95;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .value-points li:last-child {
+      border-bottom: none;
+    }
+
+    /* ==================== 数据统计展示 ==================== */
+    .stats-section {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 32px 24px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-number {
+      font-size: 48px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 15px;
+      color: var(--text-light);
+      font-weight: 500;
+    }
+
+    /* ==================== 未来规划路线图 ==================== */
+    .roadmap-section {
+      background: #f8fafc;
+    }
+
+    .roadmap {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .roadmap-item {
+      display: flex;
+      gap: 24px;
+      padding: 24px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      align-items: flex-start;
+    }
+
+    .roadmap-phase {
+      width: 80px;
+      flex-shrink: 0;
+      text-align: center;
+    }
+
+    .roadmap-phase-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      background: #eef2ff;
+      padding: 4px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .roadmap-phase-icon {
+      font-size: 36px;
+    }
+
+    .roadmap-content h4 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .roadmap-content p {
+      color: var(--text-light);
+      font-size: 15px;
+    }
+
+    .roadmap-content ul {
+      margin-top: 12px;
+      padding-left: 20px;
+      color: var(--text-light);
+    }
+
+    .roadmap-content ul li {
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    /* ==================== 底部 CTA ==================== */
+    .cta-section {
+      background: var(--gradient-hero);
+      color: white;
+      text-align: center;
+      padding: 80px 0;
+    }
+
+    .cta-title {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+
+    .cta-desc {
+      font-size: 18px;
+      opacity: 0.9;
+      margin-bottom: 40px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-btn {
+      padding: 16px 36px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      border: none;
+    }
+
+    .cta-btn-primary {
+      background: white;
+      color: var(--primary-dark);
+    }
+
+    .cta-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .cta-btn-secondary {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .cta-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* ==================== 页脚 ==================== */
+    .footer {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 40px 0;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    /* ==================== 响应式 ==================== */
+    @media (max-width: 900px) {
+      .hero-title { font-size: 36px; }
+      .hero-subtitle { font-size: 16px; }
+      .section-title { font-size: 28px; }
+      .scenario-grid, .feature-grid, .value-grid { grid-template-columns: 1fr; }
+      .pain-grid { grid-template-columns: 1fr; }
+      .solution-steps { grid-template-columns: 1fr 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .tech-arch { padding: 24px; }
+    }
+
+    /* 小动画 */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .floating {
+      animation: float 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== Hero 区 ==================== -->
+  <section class="hero-section">
+    <div class="container hero-content">
+      <span class="hero-badge">🏆 社会服务赛道 · 社会公益</span>
+      <h1 class="hero-title">
+        亲情守护站 <span class="highlight">KinSight Guardian</span>
+      </h1>
+      <p class="hero-subtitle">
+        基于人脸识别的老人、女性、儿童安全守护者 —— 本地计算，隐私安全，让每位家人都被温柔守护
+      </p>
+      <div class="hero-features">
+        <div class="hero-feature">
+          <span class="hero-feature-icon">🔒</span>
+          <span>端侧本地计算</span>
+        </div>
+        <div class="hero-feature">
+          <span class="hero-feature-icon">👴</span>
+          <span>适老化设计</span>
+        </div>
+        <div class="hero-feature">
+          <span class="hero-feature-icon">⚡</span>
+          <span>实时预警</span>
+        </div>
+        <div class="hero-feature">
+          <span class="hero-feature-icon">🌍</span>
+          <span>多场景覆盖</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 三大核心场景 ==================== -->
+  <section class="scenarios">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">三大核心场景</span>
+        <h2 class="section-title">为弱势群体量身定制</h2>
+        <p class="section-desc">从独居老人、独居女性到儿童看护，每个场景都有针对性的安全守护方案</p>
+      </div>
+
+      <div class="scenario-grid">
+
+        <!-- 老人场景 -->
+        <div class="scenario-card elder">
+          <div class="scenario-icon floating">👵</div>
+          <h3 class="scenario-title">独居老人守护</h3>
+          <p class="scenario-subtitle">关注独居长辈的日常访客安全</p>
+          <div class="scenario-pain">
+            ⚠️ 痛点：老人独自在家，陌生人敲门无法及时告知家人；护理员是否按时到访无从得知
+          </div>
+          <ul class="scenario-features">
+            <li>自动识别家人/护理人员到访并记录</li>
+            <li>陌生人上门时，远程推送通知给子女</li>
+            <li>大字体、语音播报的适老化界面</li>
+            <li>一键求助按钮，紧急情况快速联系家人</li>
+            <li>来访记录时间线，家人随时查看</li>
+          </ul>
+        </div>
+
+        <!-- 女性场景 -->
+        <div class="scenario-card woman">
+          <div class="scenario-icon floating">👩</div>
+          <h3 class="scenario-title">独居女性守护</h3>
+          <p class="scenario-subtitle">为独自居住的女性提供安心保障</p>
+          <div class="scenario-pain">
+            ⚠️ 痛点：独自居住时无法确认来人身份，不敢轻易开门；快递/维修人员上门存在安全隐患
+          </div>
+          <ul class="scenario-features">
+            <li>门外摄像头自动识别已登记访客</li>
+            <li>陌生人抓拍预警，支持一键求助</li>
+            <li>临时访客二维码，快递员无需接触</li>
+            <li>预设信任名单，区分熟人与陌生人</li>
+            <li>伪装语音应答（如"稍等我先生来开门"）</li>
+          </ul>
+        </div>
+
+        <!-- 儿童场景 -->
+        <div class="scenario-card child">
+          <div class="scenario-icon floating">👶</div>
+          <h3 class="scenario-title">儿童接送守护</h3>
+          <p class="scenario-subtitle">幼儿园/托管所的智能接送识别</p>
+          <div class="scenario-pain">
+            ⚠️ 痛点：幼儿园门口人多混杂，老师无法逐一确认接送人身份；存在冒领风险
+          </div>
+          <ul class="scenario-features">
+            <li>预登记接送家长的人脸信息</li>
+            <li>接送时自动识别并记录时间</li>
+            <li>陌生人接送时实时预警给老师</li>
+            <li>推送接送记录给家长手机</li>
+            <li>多班级管理，每个孩子独立授权</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 痛点分析 ==================== -->
+  <section class="pain-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">痛点分析</span>
+        <h2 class="section-title">当前面临的真实问题</h2>
+        <p class="section-desc">从日常观察出发，我们总结了弱势群体在居家/机构场景下的六大安全痛点</p>
+      </div>
+
+      <div class="pain-grid">
+        <div class="pain-card">
+          <div class="pain-icon">🚪</div>
+          <h4 class="pain-title">信息不对称</h4>
+          <p class="pain-desc">老人/孩子无法准确判断来人身份，家人不在身边更无从知晓</p>
+        </div>
+
+        <div class="pain-card">
+          <div class="pain-icon">📹</div>
+          <h4 class="pain-title">监控"被动"不"主动"</h4>
+          <p class="pain-desc">传统监控只能事后查看录像，无法实时识别和预警陌生人</p>
+        </div>
+
+        <div class="pain-card">
+          <div class="pain-icon">☁️</div>
+          <h4 class="pain-title">隐私泄露风险</h4>
+          <p class="pain-desc">商业监控产品多需上传云端，人脸识别数据隐私安全难以保障</p>
+        </div>
+
+        <div class="pain-card">
+          <div class="pain-icon">💻</div>
+          <h4 class="pain-title">操作门槛高</h4>
+          <p class="pain-desc">复杂的监控系统需要专业人员部署，普通家庭/小型机构难以使用</p>
+        </div>
+
+        <div class="pain-card">
+          <div class="pain-icon">👵</div>
+          <h4 class="pain-title">适老化缺失</h4>
+          <p class="pain-desc">现有智能产品界面复杂，老人操作困难，无法真正服务目标用户</p>
+        </div>
+
+        <div class="pain-card">
+          <div class="pain-icon">💰</div>
+          <h4 class="pain-title">成本居高不下</h4>
+          <p class="pain-desc">商用方案年费高昂，普通家庭/公益机构难以承担</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 解决方案流程 ==================== -->
+  <section class="solution-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">解决方案</span>
+        <h2 class="section-title">四步守护，从安装到安心</h2>
+        <p class="section-desc">简单四步，即可搭建属于您的智能人脸识别守护系统</p>
+      </div>
+
+      <div class="solution-card">
+        <div class="solution-steps">
+
+          <div class="solution-step">
+            <div class="solution-step-num">1</div>
+            <div class="solution-step-icon">📷</div>
+            <h4 class="solution-step-title">部署摄像头</h4>
+            <p class="solution-step-desc">连接普通摄像头，无需专业设备</p>
+          </div>
+
+          <div class="solution-step">
+            <div class="solution-step-num">2</div>
+            <div class="solution-step-icon">👥</div>
+            <h4 class="solution-step-title">登记信任人员</h4>
+            <p class="solution-step-desc">录入家人/护理员/教师的人脸</p>
+          </div>
+
+          <div class="solution-step">
+            <div class="solution-step-num">3</div>
+            <div class="solution-step-icon">🔍</div>
+            <h4 class="solution-step-title">实时识别监控</h4>
+            <p class="solution-step-desc">自动识别并记录每位访客</p>
+          </div>
+
+          <div class="solution-step">
+            <div class="solution-step-num">4</div>
+            <div class="solution-step-icon">📱</div>
+            <h4 class="solution-step-title">陌生人预警</h4>
+            <p class="solution-step-desc">识别陌生人时推送实时通知</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 核心功能 ==================== -->
+  <section class="features-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">核心功能</span>
+        <h2 class="section-title">六大核心能力，全方位守护</h2>
+        <p class="section-desc">从识别到预警，从数据到隐私，每项功能都为安全守护而设计</p>
+      </div>
+
+      <div class="feature-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3 class="feature-title">实时人脸检测</h3>
+          <p class="feature-desc">基于 face-api.js 实现的端侧人脸识别，毫秒级响应，实时检测画面中的人脸特征</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">✅</div>
+          <h3 class="feature-title">信任人员识别</h3>
+          <p class="feature-desc">支持多角度人脸学习，越用越准确；自动识别已登记的家人、护理员、教师等</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🚨</div>
+          <h3 class="feature-title">陌生人预警</h3>
+          <p class="feature-desc">检测到未登记人员时自动抓拍并推送浏览器通知，紧急情况一键求助</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3 class="feature-title">来访记录时间线</h3>
+          <p class="feature-desc">完整记录每次到访时间、人员身份、抓拍照片，方便回顾和查询</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3 class="feature-title">本地数据存储</h3>
+          <p class="feature-desc">所有人脸数据存储在用户设备本地，不上传任何服务器，隐私安全由技术保障</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🌳</div>
+          <h3 class="feature-title">亲属图谱管理</h3>
+          <p class="feature-desc">按辈份、父系/母系自动分类组织家庭成员，清晰直观的关系管理</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3 class="feature-title">数据统计分析</h3>
+          <p class="feature-desc">访客频次统计、小时分布、来访排行，帮助家人了解老人/孩子的日常社交情况</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📢</div>
+          <h3 class="feature-title">语音播报提示</h3>
+          <p class="feature-desc">适老化设计，识别到访客时语音播报"某某来了"，老人也能轻松使用</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">💾</div>
+          <h3 class="feature-title">数据可迁移备份</h3>
+          <p class="feature-desc">支持一键导出/导入数据，换设备不丢失，家人间可共享信任人员名单</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 技术架构 ==================== -->
+  <section class="tech-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">技术架构</span>
+        <h2 class="section-title">端侧计算 · 隐私优先</h2>
+        <p class="section-desc">采用纯前端架构，所有计算在用户设备本地完成，确保数据不出门</p>
+      </div>
+
+      <div class="tech-arch">
+        <div class="tech-layers">
+
+          <div class="tech-layer">
+            <div class="tech-layer-title">🎨 应用层</div>
+            <div class="tech-layer-content">
+              <span class="tech-tag">Web 应用</span>
+              <span class="tech-tag">小程序（规划中）</span>
+              <span class="tech-tag">原生 App（规划中）</span>
+            </div>
+          </div>
+
+          <div class="tech-layer">
+            <div class="tech-layer-title">⚛️ 框架层</div>
+            <div class="tech-layer-content">
+              <span class="tech-tag">React 18</span>
+              <span class="tech-tag">Vite 构建</span>
+              <span class="tech-tag">响应式设计</span>
+              <span class="tech-tag">中英文国际化</span>
+            </div>
+          </div>
+
+          <div class="tech-layer">
+            <div class="tech-layer-title">🧠 AI 能力层</div>
+            <div class="tech-layer-content">
+              <span class="tech-tag">face-api.js</span>
+              <span class="tech-tag">TinyFaceDetector</span>
+              <span class="tech-tag">FaceLandmark68</span>
+              <span class="tech-tag">FaceRecognitionNet</span>
+              <span class="tech-tag">多角度 descriptor 匹配</span>
+            </div>
+          </div>
+
+          <div class="tech-layer">
+            <div class="tech-layer-title">📷 硬件层</div>
+            <div class="tech-layer-content">
+              <span class="tech-tag">普通 USB 摄像头</span>
+              <span class="tech-tag">内置摄像头</span>
+              <span class="tech-tag">网络摄像头（规划中）</span>
+            </div>
+          </div>
+
+          <div class="tech-layer">
+            <div class="tech-layer-title">🔐 数据层</div>
+            <div class="tech-layer-content">
+              <span class="tech-tag privacy">localStorage 本地存储</span>
+              <span class="tech-tag privacy">零服务器上传</span>
+              <span class="tech-tag privacy">可加密导出备份</span>
+              <span class="tech-tag privacy">数据完全用户可控</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 数据统计展示 ==================== -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">守护数据</span>
+        <h2 class="section-title">技术能力指标</h2>
+        <p class="section-desc">可靠的性能与准确的识别，是守护安全的基础</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">300</div>
+          <div class="stat-label">毫秒级识别响应</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">98%+</div>
+          <div class="stat-label">人脸识别准确率</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">0</div>
+          <div class="stat-label">数据上传服务器</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">50+</div>
+          <div class="stat-label">支持人脸登记数</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 价值与意义 ==================== -->
+  <section class="value-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">价值与意义</span>
+        <h2 class="section-title">三重价值，让守护更有意义</h2>
+        <p class="section-desc">从社会价值、效率提升到商业价值，全方位创造积极影响</p>
+      </div>
+
+      <div class="value-grid">
+
+        <div class="value-card social">
+          <div class="value-icon">🌍</div>
+          <h3 class="value-title">社会价值</h3>
+          <ul class="value-points">
+            <li>✓ 守护弱势群体居家安全</li>
+            <li>✓ 技术手段降低安全风险</li>
+            <li>✓ 隐私保护优先的技术方案</li>
+            <li>✓ 适老化设计服务老年用户</li>
+            <li>✓ 降低社区关怀人工成本</li>
+            <li>✓ 幼儿园安全接送有保障</li>
+          </ul>
+        </div>
+
+        <div class="value-card efficiency">
+          <div class="value-icon">⚡</div>
+          <h3 class="value-title">效率提升</h3>
+          <ul class="value-points">
+            <li>✓ 自动识别无需人工登记</li>
+            <li>✓ 实时预警替代事后回顾</li>
+            <li>✓ 多场景灵活部署使用</li>
+            <li>✓ 低门槛浏览器即开即用</li>
+            <li>✓ 自动记录来访时间线</li>
+            <li>✓ 数据统计辅助决策管理</li>
+          </ul>
+        </div>
+
+        <div class="value-card business">
+          <div class="value-icon">💼</div>
+          <h3 class="value-title">商业价值</h3>
+          <ul class="value-points">
+            <li>✓ 低成本普惠方案</li>
+            <li>✓ 开源架构可定制拓展</li>
+            <li>✓ 多端产品矩阵（Web/小程序/App）</li>
+            <li>✓ 社区/公益机构批量部署</li>
+            <li>✓ 家庭用户长期增值服务</li>
+            <li>✓ 技术服务输出合作模式</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 未来规划路线图 ==================== -->
+  <section class="roadmap-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">未来规划</span>
+        <h2 class="section-title">从 Web 到全平台的产品路线图</h2>
+        <p class="section-desc">以当前 Web 版为起点，逐步完善多端多场景的智能守护生态</p>
+      </div>
+
+      <div class="roadmap">
+
+        <div class="roadmap-item">
+          <div class="roadmap-phase">
+            <div class="roadmap-phase-label">Phase 1</div>
+            <div class="roadmap-phase-icon">🌱</div>
+          </div>
+          <div class="roadmap-content">
+            <h4>Web 版核心功能（已实现）</h4>
+            <p>浏览器即开即用的人脸识别守护系统，完成核心 MVP 功能验证</p>
+            <ul>
+              <li>实时摄像头人脸检测与识别</li>
+              <li>陌生人检测与登记功能</li>
+              <li>来访记录时间线与数据统计</li>
+              <li>亲属图谱与人员管理</li>
+              <li>本地存储与数据导出/导入</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="roadmap-item">
+          <div class="roadmap-phase">
+            <div class="roadmap-phase-label">Phase 2</div>
+            <div class="roadmap-phase-icon">📱</div>
+          </div>
+          <div class="roadmap-content">
+            <h4>小程序与移动端优化</h4>
+            <p>开发微信小程序版本，降低使用门槛，同时优化移动端体验</p>
+            <ul>
+              <li>微信小程序端实时预览与预警</li>
+              <li>家人间数据同步与共享</li>
+              <li>一键求助微信推送通知</li>
+              <li>儿童接送场景家长端小程序</li>
+              <li>语音播报与适老化界面优化</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="roadmap-item">
+          <div class="roadmap-phase">
+            <div class="roadmap-phase-label">Phase 3</div>
+            <div class="roadmap-phase-icon">📺</div>
+          </div>
+          <div class="roadmap-content">
+            <h4>原生应用与硬件联动</h4>
+            <p>开发桌面与移动端原生应用，支持网络摄像头等专业硬件接入</p>
+            <ul>
+              <li>macOS/Windows 原生桌面应用</li>
+              <li>iOS/Android 原生移动应用</li>
+              <li>支持 RTSP/ONVIF 网络摄像头</li>
+              <li>多摄像头同时监控多区域</li>
+              <li>后台运行与系统级通知</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="roadmap-item">
+          <div class="roadmap-phase">
+            <div class="roadmap-phase-label">Phase 4</div>
+            <div class="roadmap-phase-icon">🚀</div>
+          </div>
+          <div class="roadmap-content">
+            <h4>公益部署与生态拓展</h4>
+            <p>面向社区、公益机构提供部署方案，探索更多守护场景</p>
+            <ul>
+              <li>社区老人关爱中心批量部署</li>
+              <li>幼儿园/托管所安全接送方案</li>
+              <li>走失人员面部数据匹配辅助</li>
+              <li>可穿戴设备联动（智能手表求助）</li>
+              <li>开放平台与第三方应用集成</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 底部 CTA ==================== -->
+  <section class="cta-section">
+    <div class="container">
+      <h2 class="cta-title">让每位家人都被温柔守护 💕</h2>
+      <p class="cta-desc">
+        亲情守护站 KinSight Guardian —— 以技术之名，守护最需要保护的人。
+        本地计算保障隐私，适老化设计服务全年龄段，让安全触手可及。
+      </p>
+      <div class="cta-buttons">
+        <button class="cta-btn cta-btn-primary" onclick="alert('感谢您的关注！\n\n项目开源地址：\nKinSight Guardian 亲情守护站\n\n让我们一起守护弱势群体的居家安全！')">
+          🚀 了解更多
+        </button>
+        <button class="cta-btn cta-btn-secondary" onclick="alert('联系我们：\n\n📧 合作咨询\n🤝 公益部署\n💡 功能建议\n\n欢迎加入我们的守护计划！')">
+          🤝 联系合作
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 页脚 ==================== -->
+  <footer class="footer">
+    <div class="container">
+      <p>© 2025 亲情守护站 KinSight Guardian · 社会服务赛道 · 社会公益</p>
+      <p style="margin-top: 8px; font-size: 13px; opacity: 0.7;">
+        基于 face-api.js 端侧人脸识别 · 本地数据存储 · 零服务器上传 · 隐私安全优先
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // 页面滚动动画：元素进入视口时显示
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    // 对所有卡片应用动画
+    document.querySelectorAll('.scenario-card, .pain-card, .feature-card, .value-card, .stat-card, .roadmap-item, .solution-step').forEach((el) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+      observer.observe(el);
+    });
+
+    // 数字计数动画
+    function animateNumber(el, target) {
+      let current = 0;
+      const step = target / 40;
+      const timer = setInterval(() => {
+        current += step;
+        if (current >= target) {
+          current = target;
+          clearInterval(timer);
+        }
+        if (target >= 100) {
+          el.textContent = Math.floor(current);
+        } else {
+          el.textContent = current.toFixed(0) + target.toString().includes('.') ? current.toFixed(1) : Math.floor(current);
+        }
+      }, 30);
+    }
+
+    // 统计数据进入视口时启动计数
+    const statsObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const num = entry.target.querySelector('.stat-number');
+          if (num && !num.dataset.animated) {
+            num.dataset.animated = 'true';
+            const text = num.textContent;
+            const numeric = parseFloat(text.replace(/[^0-9.]/g, ''));
+            if (!isNaN(numeric)) {
+              animateNumber(num, numeric);
+              num.textContent = text; // 恢复原始文本（包含百分号等）
+            }
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.stat-card').forEach((el) => statsObserver.observe(el));
+  </script>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { Activity } from 'lucide-react';
+import { Activity, Siren } from 'lucide-react';
 
 export default function StatsPanel({ visits, visitors, t }) {
   const today = new Date();
@@ -9,6 +9,7 @@ export default function StatsPanel({ visits, visitors, t }) {
   const totalVisits = visits.length;
   const todayVisits = visits.filter((v) => v.timestamp >= todayTs).length;
   const weekVisits = visits.filter((v) => v.timestamp >= weekAgo).length;
+  const sosCount = visits.filter((v) => v.type === 'sos').length;
 
   // Visit count per person
   const visitCounts = {};
@@ -58,9 +59,9 @@ export default function StatsPanel({ visits, visitors, t }) {
           <strong>{todayVisits}</strong>
           <span>{t('todayVisits')}</span>
         </div>
-        <div className="stat-box">
-          <strong>{weekVisits}</strong>
-          <span>{t.lang === 'zh' ? '本周' : 'This Week'}</span>
+        <div className="stat-box" style={{ background: 'linear-gradient(135deg, #fecaca, #b91c1c)', color: '#7f1d1d' }}>
+          <strong>{sosCount}</strong>
+          <span>{t('sosCount')}</span>
         </div>
         <div className="stat-box">
           <strong>{visitors.length}</strong>

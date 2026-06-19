@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { History } from 'lucide-react';
+import { History, Siren, Download } from 'lucide-react';
 import { formatTime } from '../utils/storage';
 import PersonDetailModal from './PersonDetailModal';
 
@@ -13,9 +13,35 @@ export default function TimelinePanel({ visits, visitors, t }) {
     return visits.filter((v) => {
       if (filter === 'recognized') return v.type === 'recognized' || v.type === 'registered';
       if (filter === 'stranger') return v.type === 'stranger';
+      if (filter === 'sos') return v.type === 'sos';
       return true;
     });
   }, [visits, filter]);
+
+  function exportCsv(all = true) {
+    const dataToExport = all ? visits : filtered;
+    if (!dataToExport.length) return;
+
+    const headers = [t('csvHeaderType'), t('csvHeaderName'), t('csvHeaderRelation'), t('csvHeaderTime')];
+    const rows = dataToExport.map((v) => {
+      const person = getPerson(v.personId);
+      const typeMap = { recognized: t('recognizedLabel'), stranger: t('strangerLabel'), sos: t('sosLabel'), registered: t('registeredLabel') };
+      const typeLabel = typeMap[v.type] || v.type;
+      const name = person?.name || t('unknown');
+      const relation = person?.relation || '';
+      const time = new Date(v.timestamp).toLocaleString(t.lang === 'zh' ? 'zh-CN' : 'en-US');
+      return [typeLabel, name, relation, time];
+    });
+
+    const csvContent = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kinsight-timeline-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Group by date for display
   const groups = useMemo(() => {
@@ -50,19 +76,32 @@ export default function TimelinePanel({ visits, visitors, t }) {
         </small>
       </div>
 
+      {/* Export buttons */}
+      <div className="timeline-actions">
+        <button className="ghost" onClick={() => exportCsv(false)} title={t('exportCsvFiltered')}>
+          <Download size={14} />{t('exportCsv')}
+        </button>
+        <button className="ghost" onClick={() => exportCsv(true)} title={t('exportCsvAll')}>
+          <Download size={14} />{t('exportCsvAll')}
+        </button>
+      </div>
+
       {/* Filter tabs */}
       <div className="filter-bar">
-        {['all', 'recognized', 'stranger'].map((f) => {
+        {['all', 'recognized', 'stranger', 'sos'].map((f) => {
           const count = f === 'all' ? visits.length
-            : f === 'recognized' ? visits.filter(v => v.type !== 'stranger').length
-            : visits.filter(v => v.type === 'stranger').length;
+            : f === 'recognized' ? visits.filter(v => v.type !== 'stranger' && v.type !== 'sos').length
+            : visits.filter(v => v.type === f).length;
           return (
             <button
               key={f}
               className={`ghost filter-btn ${filter === f ? 'active' : ''}`}
               onClick={() => setFilter(f)}
             >
-              {f === 'all' ? t('allVisits') : f === 'recognized' ? t('recognizedLabel') : t('strangerLabel')}
+              {f === 'all' ? t('allVisits')
+                : f === 'recognized' ? t('recognizedLabel')
+                : f === 'stranger' ? t('strangersOnly')
+                : t('sosOnly')}
               <span className="filter-count">{count}</span>
             </button>
           );
@@ -86,19 +125,25 @@ export default function TimelinePanel({ visits, visitors, t }) {
                     onClick={() => person && setDetailPerson(person)}
                     style={{ cursor: person ? 'pointer' : 'default' }}
                   >
-                    {person ? (
+                    {visit.type === 'sos' ? (
+                      <div className="timeline-avatar timeline-avatar-sos"><Siren size={20} /></div>
+                    ) : person ? (
                       <img className="timeline-avatar" src={person.image} alt={person.name} />
                     ) : (
                       <div className="timeline-avatar timeline-avatar-stranger">?</div>
                     )}
                     <div className="timeline-info">
                       <strong>
-                        {person ? `${person.relation} ${person.name}` : t('unknown')}
+                        {visit.type === 'sos' ? t('sosLabel')
+                          : person ? `${person.relation} ${person.name}` : t('unknown')}
                       </strong>
                       <span>{formatTime(visit.timestamp)}</span>
                     </div>
                     {visit.type === 'stranger' && (
                       <span className="timeline-type-tag stranger-tag">{t('strangerLabel')}</span>
+                    )}
+                    {visit.type === 'sos' && (
+                      <span className="timeline-type-tag sos-tag">{t('sosLabel')}</span>
                     )}
                     {visit.snapshotImage && (
                       <img className="timeline-snapshot" src={visit.snapshotImage} alt="snap" />
