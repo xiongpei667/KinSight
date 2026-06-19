@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ShieldAlert, Bell, Activity, Users, History, Settings, Languages } from 'lucide-react';
 import CameraView from './components/CameraView';
 import RegisterForm from './components/RegisterForm';
@@ -6,12 +6,18 @@ import RecognizedAlert from './components/RecognizedAlert';
 import FamilyTree from './components/FamilyTree';
 import PersonDetailModal from "./components/PersonDetailModal";
 import StatsPanel from "./components/StatsPanel";
-import PeoplePanel from "./components/PeoplePanel";
+import PeoplePanel from './components/PeoplePanel';
 import TimelinePanel from './components/TimelinePanel';
+import SettingsPanel from './components/SettingsPanel';
+import SosButton from './components/SosButton';
+import PresenceIndicator from './components/PresenceIndicator';
+import RemoteMonitor from './components/RemoteMonitor';
 import useFaceRecognition from './hooks/useFaceRecognition';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { makeId } from './utils/storage';
 import { createI18n } from './utils/i18n';
+import { pushEvent, addPushHistory } from './utils/notify';
+import { speak } from './utils/voice';
 import './App.css';
 
 const TABS = ['monitor', 'timeline', 'people', 'stats', 'settings'];
@@ -25,10 +31,22 @@ export default function App() {
   const [notifGranted, setNotifGranted] = useState(false);
   const [editPerson, setEditPerson] = useState(null);
   const [detailPerson, setDetailPerson] = useState(null);
+  const [presentPeople, setPresentPeople] = useState([]);
+
+  // 摄像头 video 元素引用：用于 SOS / 识别时抓拍当前帧
+  const videoRef = useRef(null);
+  // Canvas 元素引用：用于绘制人脸检测框
+  const canvasRef = useRef(null);
 
   const t = createI18n(lang).t;
   const visitors = data.visitors;
   const visits = data.visits;
+  const settings = data.settings;
+
+  // 统一更新 settings 字段（与 visitors/visits 共用同一份持久化数据）
+  const updateSettings = useCallback((partial) => {
+    updateData((prev) => ({ ...prev, settings: { ...(prev.settings || {}), ...partial } }));
+  }, [updateData]);
 
   // Hide recognized alert after 5s
   useEffect(() => {
@@ -47,16 +65,55 @@ export default function App() {
     return c.toDataURL('image/jpeg', 0.6);
   }
 
-  const handleRecognized = useCallback((visitor, distance, seenAt) => {
+  const handleRecognized = useCallback(async (visitor, distance, seenAt, type = 'arrival') => {
     const snapshot = captureFrame();
     setRecognized({ ...visitor, _distance: distance, _seenAt: seenAt });
-    addVisit(visitor.id, 'recognized', snapshot);
-  }, []);
 
-  const handleUnknownFace = useCallback((face) => {
+    // 处理在场状态
+    if (type === 'arrival') {
+      // 首次到达
+      setPresentPeople(prev => {
+        const exists = prev.find(p => p.id === visitor.id);
+        if (!exists) {
+          return [...prev, { ...visitor, lastSeen: seenAt }];
+        }
+        return prev;
+      });
+    }
+
+    addVisit(visitor.id, 'recognized', snapshot);
+    // 远程守护推送 + 语音播报
+    const result = await pushEvent(settings, {
+      type: 'recognized',
+      name: visitor.name,
+      relation: visitor.relation,
+      snapshotImage: snapshot,
+      timestamp: seenAt,
+    });
+    if (result.status === 'ok' || result.status === 'failed') {
+      addPushHistory(settings, { type: 'recognized', name: visitor.name, status: result.status, timestamp: result.timestamp });
+    }
+    if (settings?.accessibility?.voiceAnnounce && type === 'arrival') {
+      speak(`${visitor.relation} ${visitor.name} ${t('voiceRecognized')}`, lang);
+    }
+  }, [settings, lang, t]);
+
+  const handleUnknownFace = useCallback(async (face) => {
     setUnknownFace(face);
     addVisit(null, 'stranger', face.image);
-  }, []);
+    // 陌生人：远程推送 + 语音
+    const result = await pushEvent(settings, {
+      type: 'stranger',
+      snapshotImage: face.image,
+      timestamp: face.seenAt,
+    });
+    if (result.status === 'ok' || result.status === 'failed') {
+      addPushHistory(settings, { type: 'stranger', name: null, status: result.status, timestamp: result.timestamp });
+    }
+    if (settings?.accessibility?.voiceAnnounce) {
+      speak(t('voiceStranger'), lang);
+    }
+  }, [settings, lang, t]);
 
   function addVisit(personId, type, snapshotImage) {
     updateData((prev) => ({
@@ -66,7 +123,8 @@ export default function App() {
   }
 
   function addVisitor({ name, relation, note, image, descriptor }) {
-    const visitor = { id: makeId(), name, relation, note, image, descriptor, createdAt: Date.now() };
+    // 将单个 descriptor 存为 descriptors 数组，支持多角度
+    const visitor = { id: makeId(), name, relation, note, image, descriptors: descriptor ? [descriptor] : [], createdAt: Date.now() };
     updateData((prev) => ({
       ...prev,
       visitors: [visitor, ...prev.visitors],
@@ -74,6 +132,33 @@ export default function App() {
     }));
     setUnknownFace(null);
   }
+
+  // 自动学习新角度：将新的 descriptor 加入已有人员的 descriptors 库
+  function learnDescriptor(visitorId, newDescriptor) {
+    updateData((prev) => ({
+      ...prev,
+      visitors: prev.visitors.map((v) => {
+        if (v.id !== visitorId) return v;
+        const descriptors = v.descriptors || [];
+        // 防止重复添加过于相似的 descriptor（距离很近说明角度差不多）
+        const isDuplicate = descriptors.some((d) => {
+          let sum = 0;
+          for (let i = 0; i < d.length; i++) { const diff = d[i] - newDescriptor[i]; sum += diff * diff; }
+          return Math.sqrt(sum) < 0.3; // 距离太近说明角度几乎一样，不需要存储
+        });
+        if (isDuplicate) return v;
+        return { ...v, descriptors: [...descriptors, newDescriptor] };
+      }),
+    }));
+  }
+
+  // 处理人员离开
+  const handleDeparture = useCallback((person) => {
+    setPresentPeople(prev => prev.filter(p => p.id !== person.id));
+    if (settings?.accessibility?.voiceAnnounce) {
+      speak(`${person.relation} ${person.name} 离开了`, lang);
+    }
+  }, [settings, lang]);
 
   function updateVisitor(id, updates) {
     updateData((prev) => ({
@@ -136,14 +221,41 @@ export default function App() {
 
   function clearData() {
     if (!window.confirm(t('clearConfirm'))) return;
-    updateData({ visitors: [], visits: [] });
+    updateData((prev) => ({ visitors: [], visits: [], settings: prev.settings || {} }));
   }
 
-  const { modelsReady, cameraReady, status, error, modelProgress, videoRef, canvasRef, startCamera } =
-    useFaceRecognition({ visitors, onRecognized: handleRecognized, onUnknownFace: handleUnknownFace });
+  // ── 一键求助 ──
+  // 确认后抓拍当前画面，推送给守护方，并记录一条 sos 访客记录；
+  // 同时触发本地通知与语音，确保被守护人得到反馈。
+  const handleSos = useCallback(async () => {
+    if (!window.confirm(t('sosConfirm'))) return;
+    const snapshot = captureFrame();
+    const timestamp = Date.now();
+
+    // 推送远程守护（按 settings.webhook.events.sos 开关）
+    pushEvent(settings, { type: 'sos', snapshotImage: snapshot, timestamp });
+
+    // 记录到访客时间线
+    addVisit(null, 'sos', snapshot);
+
+    // 本地反馈：语音 + 通知
+    if (settings?.accessibility?.voiceAnnounce) {
+      speak(t('sosVoice'), lang);
+    }
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(t('sos'), { body: t('sosSent') });
+      } catch {
+        /* noop */
+      }
+    }
+  }, [settings, lang, t]);
+
+  const { modelsReady, cameraReady, status, error, modelProgress, startCamera } =
+    useFaceRecognition({ visitors, onRecognized: handleRecognized, onUnknownFace: handleUnknownFace, onLearnDescriptor: learnDescriptor, videoRef, canvasRef });
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-large-font={settings?.accessibility?.largeFont ? '1' : '0'}>
       {/* Header */}
       <header className="hero card">
         <div>
@@ -152,6 +264,7 @@ export default function App() {
           <p>{t('tagline')}</p>
         </div>
         <div className="hero-actions">
+          <SosButton variant="inline" onSos={handleSos} t={t} disabled={!cameraReady} />
           <button className="ghost lang-btn" onClick={() => setLang((l) => l === 'zh' ? 'en' : 'zh')}>
             <Languages size={16} />{t('langSwitch')}
           </button>
@@ -172,6 +285,14 @@ export default function App() {
       )}
 
       {recognized && <RecognizedAlert person={recognized} t={t} />}
+
+      {/* 在场状态指示器 */}
+      {presentPeople.length > 0 && (
+        <PresenceIndicator
+          presentPeople={presentPeople}
+          onDeparture={handleDeparture}
+        />
+      )}
 
       {/* Tab bar */}
       <nav className="tab-bar">
@@ -204,7 +325,16 @@ export default function App() {
             onStartCamera={startCamera}
             t={t}
           />
-          <RegisterForm unknownFace={unknownFace} onSave={addVisitor} t={t} />
+          <div>
+            <RegisterForm unknownFace={unknownFace} onSave={addVisitor} t={t} />
+            {cameraReady && (
+              <RemoteMonitor
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                t={t}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -232,17 +362,18 @@ export default function App() {
       {tab === 'stats' && <StatsPanel visits={visits} visitors={visitors} t={t} />}
 
       {tab === 'settings' && (
-        <section className="card settings-card">
-          <div className="section-title"><Settings size={18} /><span>{t('settings')}</span></div>
-          <div className="settings-actions">
-            <button className="primary" onClick={exportData}><span>{t('exportData')}</span></button>
-            <button className="primary" onClick={importData}><span>{t('importData')}</span></button>
-            <button className="ghost danger" onClick={clearData}><span>{t('clearData')}</span></button>
-          </div>
-          <p className="settings-hint">
-            {visitors.length} persons · {visits.length} visits · {captureFrame() ? 'camera' : 'no camera'}
-          </p>
-        </section>
+        <SettingsPanel
+          settings={settings}
+          updateSettings={updateSettings}
+          exportData={exportData}
+          importData={importData}
+          clearData={clearData}
+          visitorsCount={visitors.length}
+          visitsCount={visits.length}
+          cameraReady={cameraReady}
+          t={t}
+          lang={lang}
+        />
       )}
 
       {/* Person detail modal */}
@@ -251,6 +382,9 @@ export default function App() {
       )}
 
       <FamilyTree visitors={visitors} onRemove={removeVisitor} onDetail={setDetailPerson} t={t} />
+
+      {/* 移动端浮动 SOS 按钮（始终可见） */}
+      <SosButton variant="fab" onSos={handleSos} t={t} disabled={!cameraReady} />
     </main>
   );
 }
