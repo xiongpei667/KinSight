@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { Lock, VideoOff, Wifi, WifiOff } from 'lucide-react';
-import { REMOTE_STREAM_SERVER_PORT } from '../utils/constants';
+import { REMOTE_STREAM_SERVER_PORT } from './utils/constants';
 import { io } from 'socket.io-client';
-import '../App.css';
+import './App.css';
 
 /**
  * 远程监控查看端
