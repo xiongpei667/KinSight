@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  FACE_API_URL, MODEL_URL, MATCH_THRESHOLD, LEARN_THRESHOLD,
-  MAX_DESCRIPTORS_PER_PERSON, SCAN_INTERVAL_MS, NOTIFICATION_COOLDOWN_MS,
+  FACE_API_URL, MODEL_URL,
+  MAX_DESCRIPTORS_PER_PERSON, NOTIFICATION_COOLDOWN_MS,
   STRANGER_COOLDOWN_MS, PRESENCE_TIMEOUT_MS,
   OPTIMIZED_SCAN_INTERVAL_MS, OPTIMIZED_MATCH_THRESHOLD, OPTIMIZED_LEARN_THRESHOLD,
   FACE_DETECTION_INPUT_SIZE, FACE_DETECTION_SCORE_THRESHOLD,
@@ -34,6 +34,9 @@ export default function useFaceRecognition({ visitors, onRecognized, onUnknownFa
   const [status, setStatus] = useState('等待启动摄像头');
   const [error, setError] = useState('');
 
+  // 提升 detector options 到 ref，避免每次扫描都创建新对象
+  const detectorOptionsRef = useRef(null);
+
   // 加载人脸识别模型（仅在组件首次挂载时执行）
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +67,11 @@ export default function useFaceRecognition({ visitors, onRecognized, onUnknownFa
           setModelsReady(true);
           setModelProgress('');
           setStatus('模型已就绪，可以启动摄像头');
+          // 模型加载完成后创建 detector options，后续扫描复用
+          detectorOptionsRef.current = new window.faceapi.TinyFaceDetectorOptions({
+            inputSize: FACE_DETECTION_INPUT_SIZE,
+            scoreThreshold: FACE_DETECTION_SCORE_THRESHOLD
+          });
         }
       } catch (e) {
         setError('模型加载失败，请检查网络后刷新页面。');
@@ -128,10 +136,7 @@ export default function useFaceRecognition({ visitors, onRecognized, onUnknownFa
 
     try {
       const detection = await window.faceapi
-        .detectAllFaces(videoRef.current, new window.faceapi.TinyFaceDetectorOptions({
-          inputSize: FACE_DETECTION_INPUT_SIZE,
-          scoreThreshold: FACE_DETECTION_SCORE_THRESHOLD
-        }))
+        .detectAllFaces(videoRef.current, detectorOptionsRef.current)
         .withFaceLandmarks()
         .withFaceDescriptors();
 
@@ -143,9 +148,8 @@ export default function useFaceRecognition({ visitors, onRecognized, onUnknownFa
 
       const currentVisitors = visitorsRef.current;
       const now = Date.now();
-      const displayResult = detection[0];
 
-      // 绘制人脸检测框
+      // 绘制所有人脸检测框
       const canvas = canvasRef.current;
       if (canvas) {
         const dims = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight };
@@ -156,86 +160,90 @@ export default function useFaceRecognition({ visitors, onRecognized, onUnknownFa
         window.faceapi.draw.drawDetections(canvas, resized);
       }
 
-      // 与所有已知人员的所有角度 descriptor 匹配，取最小距离
-      let bestMatch = null;
-      let bestDistance = Infinity;
+      // 处理所有检测到的人脸，而非仅第一个
+      let strangerDetected = false;
+      let statusMsg = '';
 
-      for (const visitor of currentVisitors) {
-        const descriptors = visitor.descriptors;
-        if (!descriptors || !descriptors.length) continue;
-        // 多角度匹配：与该人的所有 descriptor 比较，取最小距离
-        const dist = bestDescriptorMatch(displayResult.descriptor, descriptors);
-        if (dist < bestDistance) {
-          bestDistance = dist;
-          bestMatch = visitor;
+      for (const face of detection) {
+        // 与所有已知人员的所有角度 descriptor 匹配，取最小距离
+        let bestMatch = null;
+        let bestDistance = Infinity;
+
+        for (const visitor of currentVisitors) {
+          const descriptors = visitor.descriptors;
+          if (!descriptors || !descriptors.length) continue;
+          const dist = bestDescriptorMatch(face.descriptor, descriptors);
+          if (dist < bestDistance) {
+            bestDistance = dist;
+            bestMatch = visitor;
+          }
+        }
+
+        if (bestMatch && bestDistance < OPTIMIZED_MATCH_THRESHOLD) {
+          // === 已识别到已知人员 ===
+          const visitorId = bestMatch.id;
+          const lastPresence = presenceRef.current[visitorId];
+          const wasPresent = lastPresence && (now - lastPresence < PRESENCE_TIMEOUT_MS);
+
+          presenceRef.current[visitorId] = now;
+
+          // 自动学习新角度
+          const descCount = bestMatch.descriptors?.length ?? 0;
+          if (bestDistance > OPTIMIZED_MATCH_THRESHOLD * 0.7 && descCount < MAX_DESCRIPTORS_PER_PERSON) {
+            onLearnDescriptor?.(visitorId, face.descriptor);
+          }
+
+          if (wasPresent) {
+            statusMsg = `${bestMatch.relation} ${bestMatch.name} 在场`;
+            if (!reminderTimerRef.current[visitorId]) {
+              reminderTimerRef.current[visitorId] = setTimeout(() => {
+                onRecognized?.(bestMatch, bestDistance, now, 'reminder');
+                reminderTimerRef.current[visitorId] = null;
+              }, PRESENCE_REMINDER_INTERVAL_MS);
+            }
+          } else {
+            statusMsg = `${bestMatch.relation} ${bestMatch.name} 来了`;
+            if (!lastNotifyRef.current[visitorId] || now - lastNotifyRef.current[visitorId] > NOTIFICATION_COOLDOWN_MS) {
+              lastNotifyRef.current[visitorId] = now;
+              trySendNotification(`${bestMatch.relation} ${bestMatch.name}`, `来了`);
+              onRecognized?.(bestMatch, bestDistance, now, 'arrival');
+            }
+          }
+        } else if (bestMatch && bestDistance < OPTIMIZED_LEARN_THRESHOLD) {
+          // === 弱匹配：可能是已知人员的新角度 ===
+          const descCount = bestMatch.descriptors?.length ?? 0;
+          if (descCount < MAX_DESCRIPTORS_PER_PERSON) {
+            onLearnDescriptor?.(bestMatch.id, face.descriptor);
+          }
+          const visitorId = bestMatch.id;
+          const lastPresence = presenceRef.current[visitorId];
+          const wasPresent = lastPresence && (now - lastPresence < PRESENCE_TIMEOUT_MS);
+          presenceRef.current[visitorId] = now;
+          statusMsg = wasPresent
+            ? `${bestMatch.relation} ${bestMatch.name} 在场`
+            : `可能是 ${bestMatch.relation} ${bestMatch.name}`;
+        } else {
+          // === 陌生人 ===
+          strangerDetected = true;
         }
       }
 
-      if (bestMatch && bestDistance < OPTIMIZED_MATCH_THRESHOLD) {
-        // === 已识别到已知人员 ===
-        const visitorId = bestMatch.id;
-        const lastPresence = presenceRef.current[visitorId];
-        const wasPresent = lastPresence && (now - lastPresence < PRESENCE_TIMEOUT_MS);
-
-        // 更新在场时间
-        presenceRef.current[visitorId] = now;
-
-        // 自动学习新角度：如果匹配距离大于一定值但仍在阈值内，说明是新角度
-        // 将该 descriptor 加入此人的 descriptors 库，下次就能更好匹配
-        if (bestDistance > OPTIMIZED_MATCH_THRESHOLD * 0.7 && bestMatch.descriptors.length < MAX_DESCRIPTORS_PER_PERSON) {
-          onLearnDescriptor?.(visitorId, displayResult.descriptor);
-        }
-
-        if (wasPresent) {
-          // 此人一直在镜头前，持续轻量提醒
-          setStatus(`${bestMatch.relation} ${bestMatch.name} 在场`);
-          // 每 5 秒触发一次视觉提醒
-          if (!reminderTimerRef.current[visitorId]) {
-            reminderTimerRef.current[visitorId] = setTimeout(() => {
-              onRecognized?.(bestMatch, bestDistance, now, 'reminder');
-              reminderTimerRef.current[visitorId] = null;
-            }, PRESENCE_REMINDER_INTERVAL_MS);
-          }
-        } else {
-          // 此人刚出现或离开后重新出现，触发提醒
-          setStatus(`${bestMatch.relation} ${bestMatch.name} 来了`);
-          // 通知冷却检查
-          if (!lastNotifyRef.current[visitorId] || now - lastNotifyRef.current[visitorId] > NOTIFICATION_COOLDOWN_MS) {
-            lastNotifyRef.current[visitorId] = now;
-            trySendNotification(`${bestMatch.relation} ${bestMatch.name}`, `来了`);
-            onRecognized?.(bestMatch, bestDistance, now, 'arrival');
-          }
-        }
-      } else if (bestMatch && bestDistance < OPTIMIZED_LEARN_THRESHOLD) {
-        // === 弱匹配：可能是已知人员的新角度 ===
-        // 距离在 MATCH_THRESHOLD 和 LEARN_THRESHOLD 之间
-        // 自动学习该 descriptor，但不触发识别提醒（避免误报）
-        if (bestMatch.descriptors.length < MAX_DESCRIPTORS_PER_PERSON) {
-          onLearnDescriptor?.(bestMatch.id, displayResult.descriptor);
-        }
-        const visitorId = bestMatch.id;
-        const lastPresence = presenceRef.current[visitorId];
-        const wasPresent = lastPresence && (now - lastPresence < PRESENCE_TIMEOUT_MS);
-        presenceRef.current[visitorId] = now;
-
-        if (wasPresent) {
-          setStatus(`${bestMatch.relation} ${bestMatch.name} 在场`);
-        } else {
-          setStatus(`可能是 ${bestMatch.relation} ${bestMatch.name}`);
-        }
-      } else {
-        // === 陌生人 ===
+      // 状态更新：优先显示识别到的人，其次显示陌生人
+      if (statusMsg) {
+        setStatus(statusMsg);
+      } else if (strangerDetected) {
         setStatus('检测到陌生人');
-        if (now - lastStrangerRef.current > STRANGER_COOLDOWN_MS) {
-          lastStrangerRef.current = now;
-          captureUnknownFace(displayResult);
-        }
+      }
+
+      // 陌生人处理（冷却控制）
+      if (strangerDetected && now - lastStrangerRef.current > STRANGER_COOLDOWN_MS) {
+        lastStrangerRef.current = now;
+        captureUnknownFace(detection[0]);
       }
 
       // 清理超时的在场记录和提醒定时器
       for (const id of Object.keys(presenceRef.current)) {
         if (now - presenceRef.current[id] > PRESENCE_TIMEOUT_MS) {
-          // 清理提醒定时器
           if (reminderTimerRef.current[id]) {
             clearTimeout(reminderTimerRef.current[id]);
             delete reminderTimerRef.current[id];

@@ -1,4 +1,9 @@
 /**
+ * Stream 工具函数
+ * 仅保留前端需要的工具；访问码生成 / 过期检查由服务端负责
+ */
+
+/**
  * 将 canvas 转换为 MJPEG 帧数据
  * @param {HTMLCanvasElement} canvas - 视频画面 canvas
  * @returns {string} base64 编码的 JPEG 帧
@@ -9,40 +14,41 @@ export function captureFrameToJpeg(canvas) {
 }
 
 /**
- * 生成随机访问码
- * @param {number} length - 访问码长度
- * @returns {string} 随机数字访问码
- */
-export function generateAccessCode(length = 6) {
-  const chars = '0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-/**
- * 检查访问码是否过期
- * @param {string} createdAt - 创建时间戳
- * @param {number} expiryHours - 有效期（小时）
- * @returns {boolean} 是否过期
- */
-export function isAccessCodeExpired(createdAt, expiryHours = 24) {
-  const now = Date.now();
-  const expiryTime = createdAt + (expiryHours * 60 * 60 * 1000);
-  return now > expiryTime;
-}
-
-/**
- * 获取局域网 IP 地址
- * @returns {Promise<string>} 局域网 IP 地址
+ * 通过 WebRTC 获取本机局域网 IP 地址
+ * 原实现使用 ipify 返回的是公网 IP，不适用于局域网流媒体场景
+ * @returns {Promise<string>} 局域网 IP 地址，失败时返回 'localhost'
  */
 export async function getLocalIpAddress() {
   try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    return data.ip;
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.createDataChannel(''); // 创建 DataChannel 以触发 ICE 收集
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // 等待 ICE 候选收集完成
+    await new Promise((resolve) => {
+      if (pc.iceGatheringState === 'complete') return resolve();
+      const checkState = () => pc.iceGatheringState === 'complete' && resolve();
+      pc.addEventListener('icegatheringstatechange', checkState);
+      setTimeout(resolve, 2000); // 超时兜底
+    });
+
+    // 从 ICE 候选中提取局域网 IP（过滤掉公网和回环地址）
+    const lines = pc.localDescription.sdp.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('a=candidate:')) {
+        const parts = line.split(' ');
+        const ip = parts[4];
+        // 优先返回局域网 IP（192.168.x.x / 10.x.x.x / 172.16-31.x.x）
+        if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(ip)) {
+          pc.close();
+          return ip;
+        }
+      }
+    }
+
+    pc.close();
+    return 'localhost';
   } catch (e) {
     console.error('Failed to get local IP:', e);
     return 'localhost';
